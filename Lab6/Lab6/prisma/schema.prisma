@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model category {
+  category_id   Int       @id @default(autoincrement())
+  category_name String    @unique @db.VarChar(100)
+  description   String?
+  product       product[]
+}
+
+model customer {
+  customer_id       Int       @id @default(autoincrement())
+  first_name        String    @db.VarChar(50)
+  last_name         String    @db.VarChar(50)
+  email             String    @unique @db.VarChar(100)
+  phone             String    @db.VarChar(20)
+  registration_date DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  city              String?   @db.VarChar(50)
+  street            String?   @db.VarChar(100)
+  building          String?   @db.VarChar(10)
+  apartment         String?   @db.VarChar(10)
+  orders            orders[]
+  review            review[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orderitem {
+  order_item_id Int     @id @default(autoincrement())
+  order_id      Int
+  product_id    Int
+  quantity      Int
+  unit_price    Decimal @db.Decimal(10, 2)
+  orders        orders  @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction)
+  product       product @relation(fields: [product_id], references: [product_id], onUpdate: NoAction)
+}
+
+model orders {
+  order_id       Int                @id @default(autoincrement())
+  customer_id    Int
+  shipping_id    Int
+  order_date     DateTime?          @default(now()) @db.Timestamp(6)
+  status         order_status_enum? @default(dbgenerated("Нове"))
+  orderitem      orderitem[]
+  customer       customer           @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction)
+  shippingmethod shippingmethod     @relation(fields: [shipping_id], references: [shipping_id], onDelete: NoAction, onUpdate: NoAction)
+  payment        payment[]
+}
+
+model payment {
+  payment_id   Int                 @id @default(autoincrement())
+  order_id     Int
+  payment_date DateTime?           @default(now()) @db.Timestamp(6)
+  method       payment_method_enum
+  amount       Decimal             @db.Decimal(10, 2)
+  orders       orders              @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  product_id     Int          @id @default(autoincrement())
+  product_name   String       @db.VarChar(150)
+  description    String?
+  price          Decimal      @db.Decimal(10, 2)
+  stock_quantity Int
+  category_id    Int
+  orderitem      orderitem[]
+  category       category     @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  producttag     producttag[]
+  review         review[]
+}
+
+model producttag {
+  product_id Int
+  tag_id     Int
+  product    product @relation(fields: [product_id], references: [product_id], onDelete: Cascade, onUpdate: NoAction)
+  tag        tag     @relation(fields: [tag_id], references: [tag_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([product_id, tag_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model review {
+  review_id   Int       @id @default(autoincrement())
+  product_id  Int
+  customer_id Int
+  rating      Decimal?  @db.Decimal(3, 2)
+  comment     String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  customer    customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction)
+  product     product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shippingmethod {
+  shipping_id    Int      @id @default(autoincrement())
+  method_name    String   @db.VarChar(50)
+  price          Decimal  @db.Decimal(10, 2)
+  estimated_days Int
+  orders         orders[]
+}
+
+model tag {
+  tag_id     Int          @id @default(autoincrement())
+  tag_name   String       @unique @db.VarChar(50)
+  producttag producttag[]
+}
+
+enum order_status_enum {
+  New         @map("Нове")
+  Processing  @map("В обробці")
+  Shipped     @map("Відправлено")
+  Delivered   @map("Доставлено")
+  Cancelled   @map("Скасовано")
+}
+
+enum payment_method_enum {
+  Card        @map("Картка")
+  Cash        @map("Готівка")
+  ApplePay    @map("Apple Pay")
+  GooglePay   @map("Google Pay")
+  PayPal      @map("PayPal")
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+}

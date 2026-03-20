@@ -10,23 +10,24 @@ datasource db {
 model category {
   category_id   Int       @id @default(autoincrement())
   category_name String    @unique @db.VarChar(100)
-  description   String?
+  // description   String?   <--- ВИДАЛЕНО/ЗАКОМЕНТУВАНО (Міграція 3)
   product       product[]
 }
 
 model customer {
-  customer_id       Int       @id @default(autoincrement())
-  first_name        String    @db.VarChar(50)
-  last_name         String    @db.VarChar(50)
-  email             String    @unique @db.VarChar(100)
-  phone             String    @db.VarChar(20)
-  registration_date DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
-  city              String?   @db.VarChar(50)
-  street            String?   @db.VarChar(100)
-  building          String?   @db.VarChar(10)
-  apartment         String?   @db.VarChar(10)
+  customer_id       Int        @id @default(autoincrement())
+  first_name        String     @db.VarChar(50)
+  last_name         String     @db.VarChar(50)
+  email             String     @unique @db.VarChar(100)
+  phone             String     @db.VarChar(20)
+  registration_date DateTime?  @default(now()) @db.Date
+  city              String?    @db.VarChar(50)
+  street            String?    @db.VarChar(100)
+  building          String?    @db.VarChar(10)
+  apartment         String?    @db.VarChar(10)
   orders            orders[]
   review            review[]
+  wishlist          wishlist[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -45,7 +46,7 @@ model orders {
   customer_id    Int
   shipping_id    Int
   order_date     DateTime?          @default(now()) @db.Timestamp(6)
-  status         order_status_enum? @default(dbgenerated("Нове"))
+  status         order_status_enum? @default(dbgenerated("'Нове'"))
   orderitem      orderitem[]
   customer       customer           @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction)
   shippingmethod shippingmethod     @relation(fields: [shipping_id], references: [shipping_id], onDelete: NoAction, onUpdate: NoAction)
@@ -68,11 +69,13 @@ model product {
   description    String?
   price          Decimal      @db.Decimal(10, 2)
   stock_quantity Int
+  is_active      Boolean      @default(true) // <--- ДОДАНО (Міграція 2)
   category_id    Int
   orderitem      orderitem[]
   category       category     @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
   producttag     producttag[]
   review         review[]
+  wishlist       wishlist[]
 }
 
 model producttag {
@@ -112,17 +115,28 @@ model tag {
 }
 
 enum order_status_enum {
-  New         @map("Нове")
-  Processing  @map("В обробці")
-  Shipped     @map("Відправлено")
-  Delivered   @map("Доставлено")
-  Cancelled   @map("Скасовано")
+  New        @map("Нове")
+  Processing @map("В обробці")
+  Shipped    @map("Відправлено")
+  Delivered  @map("Доставлено")
+  Cancelled  @map("Скасовано")
 }
 
 enum payment_method_enum {
-  Card        @map("Картка")
-  Cash        @map("Готівка")
-  ApplePay    @map("Apple Pay")
-  GooglePay   @map("Google Pay")
-  PayPal      @map("PayPal")
+  Card      @map("Картка")
+  Cash      @map("Готівка")
+  ApplePay  @map("Apple Pay")
+  GooglePay @map("Google Pay")
+  PayPal    @map("PayPal")
+}
+
+model wishlist {
+  wishlist_id Int       @id @default(autoincrement())
+  customer_id Int
+  product_id  Int
+  added_at    DateTime? @default(now()) @db.Timestamp(6)
+  customer    customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction)
+  product     product   @relation(fields: [product_id], references: [product_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([customer_id, product_id])
 }
